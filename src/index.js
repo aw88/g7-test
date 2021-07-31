@@ -4,6 +4,7 @@ const Router = require('@koa/router');
 const { CITIES } = require('./constants');
 const getUsersInCity = require('./getUsersInCity');
 const getUsersNearLocation = require('./getUsersNearLocation');
+const mergeUserLists = require('./mergeUserLists');
 
 const app = new Koa();
 const router = new Router();
@@ -19,7 +20,12 @@ router.get('/london/near', async (ctx) => {
 });
 
 router.get('/', async (ctx) => {
-  ctx.body = 'OK';
+  const londonUsers = await getUsersInCity('London');
+  const nearLondonUsers = await getUsersNearLocation(CITIES.London);
+
+  const users = mergeUserLists(londonUsers, nearLondonUsers);
+
+  ctx.body = users;
 });
 
 app
