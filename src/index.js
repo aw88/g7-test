@@ -1,7 +1,7 @@
 const Koa = require('koa');
 const Router = require('@koa/router');
 
-const { CITIES } = require('./constants');
+const { CITIES, DEFAULT_CITY } = require('./constants');
 const getUsersInCity = require('./getUsersInCity');
 const getUsersNearLocation = require('./getUsersNearLocation');
 const mergeUserLists = require('./mergeUserLists');
@@ -11,21 +11,36 @@ const router = new Router();
 
 const NODE_PORT = process.env.NODE_PORT || 3000;
 
-router.get('/london', async (ctx) => {
-  ctx.body = await getUsersInCity('London');
+router.get('/:city', async (ctx) => {
+  ctx.body = await getUsersInCity(ctx.params.city);
 });
 
-router.get('/london/near', async (ctx) => {
-  ctx.body = await getUsersNearLocation(CITIES.London);
+router.get('/:city/near', async (ctx) => {
+  const { city, distance } = ctx.params;
+
+  if (CITIES[city]) {
+    ctx.body = await getUsersNearLocation(CITIES[ctx.params.city], distance);
+  } else {
+    ctx.status = 404;
+    ctx.message = `City not found: ${city}`;
+  }
 });
 
 router.get('/', async (ctx) => {
-  const londonUsers = await getUsersInCity('London');
-  const nearLondonUsers = await getUsersNearLocation(CITIES.London);
+  const city = ctx.query?.city ?? DEFAULT_CITY;
+  const distance = ctx.query?.distance;
 
-  const users = mergeUserLists(londonUsers, nearLondonUsers);
+  if (CITIES[city]) {
+    const londonUsers = await getUsersInCity(city);
+    const nearLondonUsers = await getUsersNearLocation(CITIES[city], distance);
 
-  ctx.body = users;
+    const users = mergeUserLists(londonUsers, nearLondonUsers);
+
+    ctx.body = users;
+  } else {
+    ctx.status = 404;
+    ctx.message = `City not found: ${city}`;
+  }
 });
 
 app
